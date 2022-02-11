@@ -29,6 +29,8 @@ import org.apache.olingo.odata2.api.uri.expression.MemberExpression;
 import org.apache.olingo.odata2.api.uri.expression.OrderExpression;
 import org.eclipse.dirigible.engine.odata2.sql.api.OData2Exception;
 
+import javax.ws.rs.core.UriBuilder;
+import java.net.URI;
 import java.util.*;
 
 public class OData2Utils {
@@ -217,5 +219,16 @@ public class OData2Utils {
         errorContext.setLocale(Locale.ENGLISH);
         errorContext.setMessage("No content");
         return EntityProvider.writeErrorDocument(errorContext);
+    }
+
+    public static URI buildServiceRoot(final ODataContext context) throws ODataException {
+        final String forwardedHost = context.getRequestHeader("x-forwarded-host");
+        final String forwardedProto = context.getRequestHeader("x-forwarded-proto");
+        final URI serviceRoot = context.getPathInfo().getServiceRoot();
+        if (forwardedHost != null && forwardedProto != null) {
+            final String path = serviceRoot.getPath();
+            return UriBuilder.fromUri(forwardedProto + "://" + forwardedHost).path(path).build();
+        }
+        return serviceRoot;
     }
 }

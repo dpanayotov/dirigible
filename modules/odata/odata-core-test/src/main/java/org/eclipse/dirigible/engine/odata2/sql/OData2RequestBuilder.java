@@ -23,12 +23,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import java.util.Map.Entry;
 
 import javax.servlet.ServletContext;
@@ -90,6 +85,7 @@ public class OData2RequestBuilder {
     private String accept = "*/*"; // Default value; Maybe overruled by constructor
     private int contentSize = 1024 * 4;
     private ODataServiceFactory serviceFactory;
+    private Map<String, List<String>> headers = new HashMap<>();
 
     /**
      * @param pathSegmentStrings the path
@@ -115,7 +111,11 @@ public class OData2RequestBuilder {
      * @return OData2RequestBuilder
      */
     public OData2RequestBuilder accept(final String accept) {
-        this.accept = accept;
+        return this.header("Accept", accept);
+    }
+
+    public OData2RequestBuilder header(final String key, final String... values){
+        this.headers.put(key, Arrays.asList(values));
         return this;
     }
 
@@ -187,6 +187,7 @@ public class OData2RequestBuilder {
         headersMap.add("Content-Type", "application/json");
         headersMap.add("host", HOST + "" + PORT);
         headersMap.add("user-agent", "Mozilla/5.0");
+        headersMap.putAll(this.headers);
         expect(httpHeaders.getRequestHeaders()).andReturn(headersMap);
         final Capture<String> nameCapture = Capture.newInstance(CaptureType.LAST);
         //
@@ -208,7 +209,7 @@ public class OData2RequestBuilder {
         expect(servletRequest.getScheme()).andReturn(PROTOCOL);
         expect(servletRequest.getRemoteUser()).andReturn("RemoteUser").anyTimes();
         // needed for tests in it-op
-        expect(servletRequest.getHeader("x-forwarded-for")).andReturn("127.0.0.1").anyTimes();
+//        expect(servletRequest.getHeader("x-forwarded-for")).andReturn("127.0.0.1").anyTimes();
         StringBuilder pathSegmentsString = new StringBuilder();
         for (String pathSegment : pathSegmentStringList) {
             pathSegmentsString.append('/').append(pathSegment);

@@ -11,11 +11,13 @@
  */
 package org.eclipse.dirigible.engine.odata2.sql.processor;
 
+import org.apache.olingo.odata2.api.ODataServiceVersion;
 import org.apache.olingo.odata2.api.batch.BatchHandler;
 import org.apache.olingo.odata2.api.batch.BatchRequestPart;
 import org.apache.olingo.odata2.api.batch.BatchResponsePart;
 import org.apache.olingo.odata2.api.commons.HttpStatusCodes;
 import org.apache.olingo.odata2.api.commons.InlineCount;
+import org.apache.olingo.odata2.api.commons.ODataHttpHeaders;
 import org.apache.olingo.odata2.api.edm.*;
 import org.apache.olingo.odata2.api.ep.EntityProvider;
 import org.apache.olingo.odata2.api.ep.EntityProviderBatchProperties;
@@ -383,7 +385,7 @@ public abstract class AbstractSQLProcessor extends ODataSingleProcessor implemen
 		
 		ODataContext context = getContext();
 		EntityProviderWriteProperties writeProperties = EntityProviderWriteProperties
-				.serviceRoot(context.getPathInfo().getServiceRoot()).expandSelectTree(entry.getExpandSelectTree())
+				.serviceRoot(OData2Utils.buildServiceRoot(context)).expandSelectTree(entry.getExpandSelectTree())
 				.build();
 		final ODataResponse response = EntityProvider.writeEntry(contentType, entitySet, entry.getProperties(), writeProperties);
 		this.odata2EventHandler.afterCreateEntity(uriInfo, requestContentType, contentType, entry);
@@ -614,4 +616,19 @@ public abstract class AbstractSQLProcessor extends ODataSingleProcessor implemen
             }
         }
     }
+
+	@Override
+	public ODataResponse readServiceDocument(GetServiceDocumentUriInfo uriInfo, String contentType) throws ODataException {
+		final Edm edm = getContext().getService().getEntityDataModel();
+
+		//Service Document has version 1.0 specifically
+		if ("HEAD".equals(getContext().getHttpMethod())) {
+			return ODataResponse.header(ODataHttpHeaders.DATASERVICEVERSION, ODataServiceVersion.V10).build();
+		} else {
+			final String serviceRoot = OData2Utils.buildServiceRoot(getContext()).toASCIIString();
+			final ODataResponse response = EntityProvider.writeServiceDocument(contentType, edm, serviceRoot);
+			return ODataResponse.fromResponse(response)
+					.header(ODataHttpHeaders.DATASERVICEVERSION, ODataServiceVersion.V10).build();
+		}
+	}
 }

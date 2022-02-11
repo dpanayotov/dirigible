@@ -861,4 +861,22 @@ public class ODataSQLProcessorTest extends AbstractSQLProcessorTest {
         assertEquals("Monaco", lastOwnerAddresses.get(0).getProperties().get("City"));
         assertEquals("Haskovo", lastOwnerAddresses.get(1).getProperties().get("City"));
     }
+
+    @Test
+    public void testEntityPathBehindReverseProxy() throws ODataException, IOException {
+        final String forwardedProto = "https";
+        final String forwardedHost = "dirigible.example.com";
+        Response response = OData2RequestBuilder.createRequest(sf) //
+                .segments("Cars") //
+                .header("x-forwarded-host", forwardedHost)
+                .header("x-forwarded-proto", forwardedProto)
+                .accept("application/atom+xml").executeRequest(GET);
+        ODataFeed resultFeed = retrieveODataFeed(response, "Cars");
+        final List<ODataEntry> entries = resultFeed.getEntries();
+        for (ODataEntry entry : entries) {
+            final String entryUri = entry.getMetadata().getId();
+            final String expectedUri = String.format("%s://%s/api/v1/Cars('%s')",forwardedProto, forwardedHost, entry.getProperties().get("Id"));
+            assertEquals(expectedUri, entryUri);
+        }
+    }
 }

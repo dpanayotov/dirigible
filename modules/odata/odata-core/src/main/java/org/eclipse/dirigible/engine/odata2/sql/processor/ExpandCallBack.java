@@ -28,7 +28,10 @@ import org.apache.olingo.odata2.api.uri.UriInfo;
 import org.apache.olingo.odata2.api.uri.UriParser;
 import org.eclipse.dirigible.engine.odata2.sql.utils.OData2Utils;
 
+import javax.ws.rs.core.UriBuilder;
+import java.net.HttpURLConnection;
 import java.net.URI;
+import java.net.URL;
 import java.util.*;
 
 public class ExpandCallBack implements OnWriteFeedContent, OnWriteEntryContent, ODataCallback {
@@ -72,14 +75,13 @@ public class ExpandCallBack implements OnWriteFeedContent, OnWriteEntryContent, 
         final EdmEntitySet targetEntitySet = uriInfo.getTargetEntitySet();
         final ExpandSelectTreeNode expandSelectTree = UriParser.createExpandSelectTree(uriInfo.getSelect(), uriInfo.getExpand());
 
-        EntityProviderWriteProperties writeProperties = EntityProviderWriteProperties.serviceRoot(context.getPathInfo().getServiceRoot())
+        EntityProviderWriteProperties writeProperties = EntityProviderWriteProperties.serviceRoot(OData2Utils.buildServiceRoot(context))
                 .expandSelectTree(expandSelectTree)//
                 .callbacks(ExpandCallBack.getCallbacks(context, uriInfo, Collections.singletonList(entry)))
                 .build();
 
         return EntityProvider.writeEntry(contentType, targetEntitySet, entry, writeProperties);
     }
-
 
     public static ODataResponse writeFeedWithExpand(ODataContext context, UriInfo uriInfo, List<ResultSetReader.ExpandAccumulator> entitiesFeed,
                                                     final String contentType, Integer count, String nextLink) throws ODataException {
@@ -90,7 +92,7 @@ public class ExpandCallBack implements OnWriteFeedContent, OnWriteEntryContent, 
         }
 
         EntityProviderWriteProperties feedProperties = EntityProviderWriteProperties
-                .serviceRoot(context.getPathInfo().getServiceRoot()).inlineCountType(uriInfo.getInlineCount()).inlineCount(count)
+                .serviceRoot(OData2Utils.buildServiceRoot(context)).inlineCountType(uriInfo.getInlineCount()).inlineCount(count)
                 .expandSelectTree(UriParser.createExpandSelectTree(uriInfo.getSelect(), uriInfo.getExpand()))
                 .callbacks(ExpandCallBack.getCallbacks(context, uriInfo, entities))//
                 .nextLink(nextLink).build();
@@ -101,7 +103,7 @@ public class ExpandCallBack implements OnWriteFeedContent, OnWriteEntryContent, 
     }
 
     private static Map<String, ODataCallback> getCallbacks(ODataContext context, UriInfo uriInfo, List<Map<String, Object>> feedData) throws ODataException {
-        return ExpandCallBack.getCallbacks(context.getPathInfo().getServiceRoot(), //
+        return ExpandCallBack.getCallbacks(OData2Utils.buildServiceRoot(context), //
                 UriParser.createExpandSelectTree(uriInfo.getSelect(), uriInfo.getExpand()), //
                 uriInfo.getExpand());
     }
